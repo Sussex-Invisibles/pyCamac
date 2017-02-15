@@ -15,16 +15,17 @@ import sys
 import struct
 import numpy as np
 import time
+import pyvisa
 
-class Scalar(object):
-    
+class GPIB(object):
+
     def __init__(self):
         """ Try the default connection."""
         try:
             rm = visa.ResourceManager()
             for instrument in rm.list_resources():
                 if instrument[0:4] == "GPIB":
-                    self._connection = visa.instrument(instrument)
+                    self._connection = rm.open_resource(instrument)
                     print "Connecting to", instrument
         except visa.VisaIOError:
             print "Cannot connect to any instrument."
@@ -37,7 +38,8 @@ class Scalar(object):
     def ask(self, command):
         """ Send a command and expect an answer."""
         try:
-            return self._connection.ask(command)
+            self._connection.write(command)
+            return self._connection.read_raw()
         except visa.VisaIOError:
             # No answer given
             return None
@@ -45,7 +47,7 @@ class Scalar(object):
     def read(self):
         """ Send a command and expect an answer."""
         try:
-            return self._connection.ask(command)
+            return self._connection.read_raw()
         except visa.VisaIOError:
             # No answer given
             return None
@@ -70,6 +72,9 @@ class Scalar(object):
         """ Send deassert_inhibit command"""
         self.send(chr(64))
 
+
+class Scalar(GPIB):
+    
     def reset_values(self, n=18, slots=[0,1,2,3], output=False):
         """ Reset the count on a scalar
         
@@ -93,9 +98,10 @@ class Scalar(object):
          :param output (bool): If true, will print results (defaults to false)
          """
          write_str = "%s%s%s" % (chr(0), chr(a), chr(n))
+         print "Write string:", write_str
          read_str = self.ask(write_str)
          read_array = [ ord(x) for x in read_str ]
-         v_U = np.uint16(struct.unpack( "h", read_str[0:-2:1] )[0])
+         v_U = np.uint16(struct.unpack( "H", read_str[0:-2:1] )[0])
          if output is True:
              print read_array
              print "First chars = %s\tint cast = %i" % ( read_array[:-2:1], np.uint16(v_U))
