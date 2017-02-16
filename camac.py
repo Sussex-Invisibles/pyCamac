@@ -98,7 +98,6 @@ class Scalar(GPIB):
          :param output (bool): If true, will print results (defaults to false)
          """
          write_str = "%s%s%s" % (chr(0), chr(a), chr(n))
-         print "Write string:", write_str
          read_str = self.ask(write_str)
          read_array = [ ord(x) for x in read_str ]
          v_U = np.uint16(struct.unpack( "H", read_str[0:-2:1] )[0])
